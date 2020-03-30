@@ -1,0 +1,85 @@
+Sub AutoFindExcelFiles()
+  Dim objFSO, strFolder, objFolder, objFile, objExcel, objWorkSheet, objRange, objRows, strExtension
+  varFileCount = 0
+  reportCode = 2
+  ' Specify folder.
+  strFolder = "C:\Users\bmurugesan\Desktop\VINAY\INPUT"
+  strOutputFolder = "C:\Users\bmurugesan\Desktop\VINAY\OUTPUT"
+  Set objExcel = CreateObject("Excel.Application")
+  objExcel.Visible = False
+  Set objExcel2 = CreateObject("Excel.Application")
+  Set objWorkbook2  = objExcel2.Workbooks.Add
+  Set objWorksheet2 = objWorkbook2.Worksheets("Sheet1")
+  objExcel2.Visible = True
+ 
+  ' Enumerate files in the folder.
+  Set objFSO = CreateObject("Scripting.FileSystemObject")
+  Set objFolder = objFSO.GetFolder(strFolder)
+  For Each objFile In objFolder.Files
+    varFileName = objFile.Name
+    If (InStr(varFileName,"~$") = 0) Then
+      varFileCount = varFileCount + 1
+      ' Select only Excel spreadsheet file.
+      strExtension = objFSO.GetExtensionName(objFile.Path)
+      If (strExtension = "xls") Or (strExtension = "xlsx") Then
+          ' Open each spreadsheet and count the number of rows.
+          Set objWorkBook = objExcel.Workbooks.Open (objFile.Path)
+          Set objWorkSheet  = objWorkBook.Worksheets(1)
+          varRowsCount  = objWorkSheet.UsedRange.Rows.Count
+          varColumnsCount = objWorkSheet.UsedRange.Columns.Count
+          varEndColAlpha = ConvertToLetter(varColumnsCOunt)
+          If (varFileCount = 1) Then
+            varRowsRange  = "A1" & ":" & varEndColAlpha & varRowsCount
+          Else
+            varRowsRange  = "A2" & ":" & varEndColAlpha & varRowsCount
+          End If
+          Set objRange  = objWorkSheet.Range(varRowsRange)
+          objRange.Copy
+          
+          If (varFileCount = 1) Then
+            varPasteRowRange  = "A1"
+            varPasteRowCount = varRowsCount + 1
+          Else
+            If (reportCode = 2) Then
+              reportCode = 1
+            Else
+              varPasteRowCount = varPasteRowCount + varRowsCount-1
+            End If
+            varPasteRowRange      = "A" & varPasteRowCount
+          End If
+          
+          objWorksheet2.Range(varPasteRowRange).PasteSpecial -4163
+'          objExcel.CutCopyMode = False
+          objWorkBook.Close
+      End If
+    End If
+  Next
+  varTimeStamp = Replace(Replace(Now(), "/", "-"), ":", ".")
+  for col=1 to 4
+    objWorksheet2.columns(col).AutoFit()
+  next
+  objWorkbook2.SaveAs(strOutputFolder & "\" & "OutputFile_" & varTimeStamp & ".xlsx")
+  objWorkbook2.Close
+
+  TerminateProcess()
+End Sub
+
+Function ConvertToLetter(iCol)
+   Dim iAlpha
+   Dim iRemainder
+   iAlpha = Int(iCol / 27)
+   iRemainder = iCol - (iAlpha * 26)
+   If iAlpha > 0 Then
+      ConvertToLetter = UCase(Chr(iAlpha + 64))
+   End If
+   If iRemainder > 0 Then
+      ConvertToLetter = UCase(ConvertToLetter & Chr(iRemainder + 64))
+   End If
+End Function
+
+Sub TerminateProcess ()
+  Dim Process 
+  For Each Process In GetObject("winmgmts:").ExecQuery("Select Name from Win32_Process Where Name = 'EXCEL.EXE'")
+     Process.Terminate
+  Next
+End Sub
